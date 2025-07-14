@@ -1,0 +1,117 @@
+#뭐어쩌라고
+import tkinter as tk
+
+# 설정
+WIDTH = 800
+HEIGHT = 800
+GRAVITY = 1
+JUMP_STRENGTH = -15
+PLAYER_SPEED = 5
+
+class Game:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("점프맵 - 플랫폼 클릭 생성, 화살표로 이동, 스페이스바로 점프")
+        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="skyblue")
+        self.canvas.pack()
+
+        # 바닥 만들기
+        self.ground = self.canvas.create_rectangle(0, HEIGHT-20, WIDTH, HEIGHT, fill="green")
+
+        # 캐릭터
+        self.player = self.canvas.create_rectangle(50, HEIGHT-60, 90, HEIGHT-20, fill="red")
+        self.player_velocity_y = 0
+        self.on_ground = False
+
+        # 발판 리스트
+        self.platforms = []
+
+        # 키 입력 상태
+        self.left_pressed = False
+        self.right_pressed = False
+
+        # 마우스로 플랫폼 생성
+        self.start_x = None
+        self.start_y = None
+        self.temp_platform = None
+
+        self.canvas.bind("<Button-1>", self.start_platform)
+        self.canvas.bind("<B1-Motion>", self.draw_platform)
+        self.canvas.bind("<ButtonRelease-1>", self.end_platform)
+
+        # 키 입력 처리
+        self.root.bind("<KeyPress>", self.key_down)
+        self.root.bind("<KeyRelease>", self.key_up)
+
+        self.update()
+
+    def key_down(self, event):
+        if event.keysym == 'Left':
+            self.left_pressed = True
+        elif event.keysym == 'Right':
+            self.right_pressed = True
+        elif event.keysym == 'space':
+            if self.on_ground:
+                self.player_velocity_y = JUMP_STRENGTH
+                self.on_ground = False
+
+    def key_up(self, event):
+        if event.keysym == 'Left':
+            self.left_pressed = False
+        elif event.keysym == 'Right':
+            self.right_pressed = False
+
+    def start_platform(self, event):
+        self.start_x = event.x
+        self.start_y = event.y
+        self.temp_platform = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, fill="brown")
+
+    def draw_platform(self, event):
+        if self.temp_platform:
+            self.canvas.coords(self.temp_platform, self.start_x, self.start_y, event.x, event.y)
+
+    def end_platform(self, event):
+        if self.temp_platform:
+            self.platforms.append(self.temp_platform)
+            self.temp_platform = None
+
+    def update(self):
+        # 좌우 이동
+        if self.left_pressed:
+            self.canvas.move(self.player, -PLAYER_SPEED, 0)
+        if self.right_pressed:
+            self.canvas.move(self.player, PLAYER_SPEED, 0)
+
+        # 중력 적용
+        self.player_velocity_y += GRAVITY
+        self.canvas.move(self.player, 0, self.player_velocity_y)
+
+        # 충돌 처리
+        self.handle_collisions()
+
+        self.root.after(20, self.update)
+
+    def handle_collisions(self):
+        coords = self.canvas.coords(self.player)
+        x1, y1, x2, y2 = coords
+
+        # 바닥 충돌
+        if y2 >= HEIGHT - 20:
+            self.canvas.move(self.player, 0, HEIGHT - 20 - y2)
+            self.player_velocity_y = 0
+            self.on_ground = True
+        else:
+            self.on_ground = False
+
+        # 발판 충돌
+        for platform in self.platforms:
+            px1, py1, px2, py2 = self.canvas.coords(platform)
+            if x2 > px1 and x1 < px2 and y2 >= py1 and y1 < py1:
+                self.canvas.move(self.player, 0, py1 - y2)
+                self.player_velocity_y = 0
+                self.on_ground = True
+
+# 실행
+root = tk.Tk()
+game = Game(root)
+root.mainloop()
