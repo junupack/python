@@ -1,0 +1,39 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from itertools import product, combinations
+
+def generate_4d_hypercube():
+    return np.array(list(product([-1, 1], repeat=4)))
+
+def project_4d_to_3d(points, angle=1.5):
+    projection_matrix = np.array([
+        [1, 0, 0, angle],
+        [0, 1, 0, angle],
+        [0, 0, 1, angle]
+    ])
+    return points @ projection_matrix.T
+
+def draw_edges(ax, points):
+    for i, j in combinations(range(len(points)), 2):
+        diff = np.abs(points[i] - points[j])
+        if np.count_nonzero(diff) == 1 and np.isclose(diff.max(), 2):
+            ax.plot(*zip(points[i], points[j]), color='deepskyblue', linewidth=1)
+
+def plot_tesseract(angle=1.5):
+    points_4d = generate_4d_hypercube()
+    projected = project_4d_to_3d(points_4d, angle)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.scatter(*projected.T, color='orange', s=20)
+    draw_edges(ax, projected)
+
+    ax.set_axis_off()
+    ax.grid(False)
+    ax.view_init(elev=20, azim=30)
+
+    plt.tight_layout()
+    plt.show()
+
+plot_tesseract(angle=2.5)
