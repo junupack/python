@@ -1,0 +1,89 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+import matplotlib.animation as animation
+
+# ===== 사용자 입력 =====
+print("=== 상남자 이중진자 초기 세팅 ===")
+L1 = float(input("첫 번째 막대 길이 (m): "))
+L2 = float(input("두 번째 막대 길이 (m): "))
+m1 = float(input("첫 번째 질량 (kg): "))
+m2 = float(input("두 번째 질량 (kg): "))
+theta1_deg = float(input("첫 번째 각도 (도): "))
+theta2_deg = float(input("두 번째 각도 (도): "))
+z1 = float(input("첫 번째 각속도 (rad/s): "))
+z2 = float(input("두 번째 각속도 (rad/s): "))
+duration = float(input("시뮬레이션 시간 (초): "))
+air_resistance = float(input("공기 저항 계수 (0이면 없음): "))  # 감쇠력 계수
+
+# ===== 기본 설정 =====
+g = 9.81
+theta1 = np.radians(theta1_deg)
+theta2 = np.radians(theta2_deg)
+
+def deriv(y, t):
+    θ1, ω1, θ2, ω2 = y
+    delta = θ2 - θ1
+
+    sin_delta = np.sin(delta)
+    cos_delta = np.cos(delta)
+
+    den1 = (m1 + m2) * L1 - m2 * L1 * cos_delta ** 2
+    den2 = (L2 / L1) * den1
+
+    dθ1 = ω1
+    dθ2 = ω2
+
+    dω1 = ((m2 * L1 * ω1 ** 2 * sin_delta * cos_delta +
+            m2 * g * np.sin(θ2) * cos_delta +
+            m2 * L2 * ω2 ** 2 * sin_delta -
+            (m1 + m2) * g * np.sin(θ1)) / den1)
+
+    dω2 = ((-m2 * L2 * ω2 ** 2 * sin_delta * cos_delta +
+            (m1 + m2) * g * np.sin(θ1) * cos_delta -
+            (m1 + m2) * L1 * ω1 ** 2 * sin_delta -
+            (m1 + m2) * g * np.sin(θ2)) / den2)
+
+    # 상남자: 공기저항 직접 넣기
+    dω1 -= air_resistance * ω1
+    dω2 -= air_resistance * ω2
+
+    return [dθ1, dω1, dθ2, dω2]
+
+# 초기값
+y0 = [theta1, z1, theta2, z2]
+
+# 시간축
+t = np.linspace(0, duration, int(duration * 60))
+
+# 시뮬레이션 실행
+sol = odeint(deriv, y0, t)
+
+# 위치 계산
+x1 = L1 * np.sin(sol[:, 0])
+y1 = -L1 * np.cos(sol[:, 0])
+x2 = x1 + L2 * np.sin(sol[:, 2])
+y2 = y1 - L2 * np.cos(sol[:, 2])
+
+# ===== 시각화 =====
+fig, ax = plt.subplots()
+ax.set_xlim(-L1 - L2 - 0.5, L1 + L2 + 0.5)
+ax.set_ylim(-L1 - L2 - 0.5, L1 + L2 + 0.5)
+line, = ax.plot([], [], 'o-', lw=2)
+trace, = ax.plot([], [], 'r-', lw=1, alpha=0.5)
+title = ax.text(0.5, 1.05, "", transform=ax.transAxes, ha="center")
+
+trail_x, trail_y = [], []
+
+def animate(i):
+    trail_x.append(x2[i])
+    trail_y.append(y2[i])
+    line.set_data([0, x1[i], x2[i]], [0, y1[i], y2[i]])
+    trace.set_data(trail_x, trail_y)
+    title.set_text(f"시간: {t[i]:.2f}초")
+    return line, trace, title
+
+ani = animation.FuncAnimation(fig, animate, frames=len(t), interval=20, blit=True)
+plt.title("상남자 이중진자 시뮬")
+plt.grid()
+plt.show()
