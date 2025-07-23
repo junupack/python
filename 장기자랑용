@@ -1,0 +1,36 @@
+#장기자랑용입니다, 기대하지마 애들아
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.special import zeta
+from mpl_toolkits.mplot3d import Axes3D
+
+plt.ion()  # 인터랙티브 모드 켜기
+
+# 실수, 허수축 범위 설정
+re = np.linspace(-1, 2, 200)
+im = np.linspace(-30, 30, 400)
+Re, Im = np.meshgrid(re, im)
+s = Re + 1j * Im
+Z = np.abs(zeta(s, 1))
+
+# 3D 플롯
+fig = plt.figure(figsize=(12, 8), facecolor='black')
+ax = fig.add_subplot(111, projection='3d', facecolor='black')
+
+surf = ax.plot_surface(Re, Im, Z, cmap='plasma', linewidth=0, antialiased=True)
+
+# 회전 가능 설정은 기본적으로 됨 (마우스로 드래그)
+ax.set_xlabel('Re(s)', color='white')
+ax.set_ylabel('Im(s)', color='white')
+ax.set_zlabel('|ζ(s)|', color='white')
+ax.set_title('리만 제타 함수 시각화 (회전 가능)', color='red')
+
+# 축 색상
+ax.xaxis.label.set_color('white')
+ax.yaxis.label.set_color('white')
+ax.zaxis.label.set_color('white')
+
+# 보기 각도 조절 (옵션)
+ax.view_init(elev=30, azim=45)
+
+plt.show()
