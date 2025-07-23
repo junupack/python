@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 
-# 4D 정팔포체 정점 생성 (±1, ±1, ±1, ±1 조합)
+# 4D 정팔포체 정점 생
 vertices_4d = np.array([[x, y, z, w]
                         for x in [-1, 1]
                         for y in [-1, 1]
                         for z in [-1, 1]
                         for w in [-1, 1]])
 
-# 간선 정의 (4차원 상에서 1차원 차이 나는 점들끼리만 연결)
+# 간선 정의
 edges = []
 for i in range(len(vertices_4d)):
     for j in range(i+1, len(vertices_4d)):
@@ -24,7 +24,7 @@ def project_to_3d(point4d, w_distance=4):
     factor = w_distance / (w_distance - w)
     return point4d[:3] * factor
 
-# 4D 회전 함수 (XW + YZ 평면 회전)
+# 4D 회전 함수
 def rotate_4d(vertices, angle):
     c, s = np.cos(angle), np.sin(angle)
 
