@@ -1,32 +1,77 @@
 #장기자랑용입니다, 기대하지마 애들아
-import matplotlib
-matplotlib.use('TkAgg')  # 창 띄우는 백엔드 강제 설정
-
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.special import zeta
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.animation import FuncAnimation
 
-# 복소평면 구성
-re = np.linspace(-1, 2, 200)
-im = np.linspace(-30, 30, 400)
-Re, Im = np.meshgrid(re, im)
-s = Re + 1j * Im
-Z = np.abs(zeta(s, 1))
+# 4D 정팔포체 정점 생성 (±1, ±1, ±1, ±1 조합)
+vertices_4d = np.array([[x, y, z, w]
+                        for x in [-1, 1]
+                        for y in [-1, 1]
+                        for z in [-1, 1]
+                        for w in [-1, 1]])
 
-# 3D 그래프 생성
-fig = plt.figure(figsize=(12, 8))
+# 간선 정의 (4차원 상에서 1차원 차이 나는 점들끼리만 연결)
+edges = []
+for i in range(len(vertices_4d)):
+    for j in range(i+1, len(vertices_4d)):
+        if np.sum(np.abs(vertices_4d[i] - vertices_4d[j])) == 2:
+            edges.append((i, j))
+
+# 4D -> 3D 투영 함수
+def project_to_3d(point4d, w_distance=4):
+    w = point4d[3]
+    factor = w_distance / (w_distance - w)
+    return point4d[:3] * factor
+
+# 4D 회전 함수 (XW + YZ 평면 회전)
+def rotate_4d(vertices, angle):
+    c, s = np.cos(angle), np.sin(angle)
+
+    # XW 회전
+    rot_xw = np.identity(4)
+    rot_xw[0, 0] = c
+    rot_xw[0, 3] = -s
+    rot_xw[3, 0] = s
+    rot_xw[3, 3] = c
+
+    # YZ 회전
+    rot_yz = np.identity(4)
+    rot_yz[1, 1] = c
+    rot_yz[1, 2] = -s
+    rot_yz[2, 1] = s
+    rot_yz[2, 2] = c
+
+    # 회전 적용
+    return vertices @ rot_xw @ rot_yz
+
+# 시각화 세팅
+fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(Re, Im, Z, cmap='plasma', edgecolor='none', antialiased=True)
+ax.set_facecolor('black')
+fig.patch.set_facecolor('black')
+ax.axis('off')
+ax.view_init(elev=20, azim=30)
+lines = []
 
-# 라벨 및 제목
-ax.set_xlabel('Re(s)')
-ax.set_ylabel('Im(s)')
-ax.set_zlabel('|ζ(s)|')
-ax.set_title('리만 제타 함수 시각화')
+# 초기 선들 그리기
+for (i, j) in edges:
+    line, = ax.plot([], [], [], color='cyan', linewidth=1)
+    lines.append(line)
 
-# 회전 초기 각도 (선택)
-ax.view_init(elev=30, azim=45)
+# 업데이트 함수
+def update(frame):
+    angle = frame * 0.03
+    rotated = rotate_4d(vertices_4d, angle)
+    projected = np.array([project_to_3d(v) for v in rotated])
 
-# 그래프 창 열기 (확실하게)
-plt.show(block=True)
+    for idx, (i, j) in enumerate(edges):
+        p1, p2 = projected[i], projected[j]
+        lines[idx].set_data([p1[0], p2[0]], [p1[1], p2[1]])
+        lines[idx].set_3d_properties([p1[2], p2[2]])
+
+    return lines
+
+# 애니메이션 시작
+ani = FuncAnimation(fig, update, frames=range(1000), interval=30, blit=True)
+plt.show()
