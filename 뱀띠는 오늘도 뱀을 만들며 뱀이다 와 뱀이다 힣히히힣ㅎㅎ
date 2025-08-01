@@ -1,0 +1,103 @@
+import tkinter as tk
+import random
+
+# 게임 설정
+WIDTH = 400
+HEIGHT = 400
+SPEED = 100
+SIZE = 20
+DIRS = {'Up': (0, -1), 'Down': (0, 1), 'Left': (-1, 0), 'Right': (1, 0)}
+
+class SnakeGame:
+    def __init__(self, root):
+        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="black")
+        self.canvas.pack()
+
+        # 초기 뱀 설정
+        self.snake = [(5, 5), (4, 5), (3, 5)]
+        self.direction = 'Right'
+        self.foods = []
+        self.running = True
+
+        # 사과 생성
+        self.spawn_multiple_foods(3) #전체칸이 400이니까 self.spawn_multiple_foods(300)으로 바꾸면 재미있음 300을 399로바꾸면 바로 다 펑
+
+        self.draw()
+        self.canvas.bind_all("<Key>", self.on_key)
+        self.update()
+
+    def spawn_food(self):
+        while True:
+            x = random.randint(0, WIDTH // SIZE - 1)
+            y = random.randint(0, HEIGHT // SIZE - 1)
+            if (x, y) not in self.snake and (x, y) not in self.foods:
+                self.foods.append((x, y))
+                break
+
+    def spawn_multiple_foods(self, n):
+        for _ in range(n):
+            self.spawn_food()
+
+    def on_key(self, event):
+        if event.keysym in DIRS:
+            dx, dy = DIRS[event.keysym]
+            cx, cy = DIRS[self.direction]
+            if (dx, dy) != (-cx, -cy):
+                self.direction = event.keysym
+
+    def move(self):
+        if not self.running:
+            return
+
+        dx, dy = DIRS[self.direction]
+        head_x, head_y = self.snake[0]
+        new_head = (head_x + dx, head_y + dy)
+
+        # 충돌 판정
+        if (
+            new_head in self.snake or
+            not (0 <= new_head[0] < WIDTH // SIZE) or
+            not (0 <= new_head[1] < HEIGHT // SIZE)
+        ):
+            self.running = False
+            self.canvas.create_text(WIDTH // 2, HEIGHT // 2, fill="red", font="Arial 20 bold", text="Game Over")
+            return
+
+        self.snake.insert(0, new_head)
+
+        # 먹이 먹기
+        if new_head in self.foods:
+            self.foods.remove(new_head)
+            self.spawn_food() 
+        else:
+            self.snake.pop()
+
+    def draw(self):
+        self.canvas.delete("all")
+
+        # 뱀 그리기 (머리만 파란색)
+        for i, (x, y) in enumerate(self.snake):
+            color = "blue" if i == 0 else "green"
+            self.canvas.create_rectangle(
+                x * SIZE, y * SIZE, (x + 1) * SIZE, (y + 1) * SIZE,
+                fill=color
+            )
+
+        # 사과 그리기
+        for fx, fy in self.foods:
+            self.canvas.create_oval(
+                fx * SIZE, fy * SIZE, (fx + 1) * SIZE, (fy + 1) * SIZE,
+                fill="red"
+            )
+
+    def update(self):
+        self.move()
+        self.draw()
+        if self.running:
+            self.canvas.after(SPEED, self.update)
+
+# 실행
+root = tk.Tk()
+root.title("뱀띠의 뱀")
+game = SnakeGame(root)
+root.mainloop()
